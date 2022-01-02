@@ -2,7 +2,7 @@ include Make_linux.inc
 #include Make_msys2.inc
 #include Make_osx.inc
 
-CXXFLAGS = -std=c++17 `sdl2-config --cflags`
+CXXFLAGS = -std=c++17 `sdl2-config --cflags` -fPIC  -fopenmp
 ifdef DEBUG
 CXXFLAGS += -g -O0 -Wall -fbounds-check -pedantic -D_GLIBCXX_DEBUG -DDEBUG
 else
@@ -10,7 +10,7 @@ CXXFLAGS += -O3 -march=native -Wall
 endif
 
 LIBS = $(LIB) `sdl2-config --cflags` -lSDL2_ttf -lSDL2_image  `sdl2-config --libs` 
-ALL= simulation.exe
+ALL= simulation.exe simulation_sync_affiche_mpi.exe simulation_async_affiche_mpi.exe simulation_async_omp.exe
 
 default:	help
 
@@ -48,8 +48,18 @@ graphisme/src/SDL2/formated_texte.o : graphisme/src/SDL2/window.hpp graphisme/sr
 graphisme/src/SDL2/image.o : graphisme/src/SDL2/window.hpp graphisme/src/SDL2/image.hpp graphisme/src/SDL2/image.cpp
 	$(CXX) $(CXXFLAGS) -c graphisme/src/SDL2/image.cpp -o graphisme/src/SDL2/image.o
 
-simulation.exe:	$(OBJS) simulation_async_affiche_mpi.cpp
+simulation.exe:	$(OBJS) simulation.cpp
+	$(CXX) $(CXXFLAGS) $(OBJS) simulation.cpp -o simulation.exe $(LIBS)
+
+simulation_sync_affiche_mpi.exe: $(OBJS) simulation_sync_affiche_mpi.cpp
+	$(CXX) $(CXXFLAGS) $(OBJS) simulation_sync_affiche_mpi.cpp -o simulation_sync_affiche_mpi.exe $(LIBS)
+
+simulation_async_affiche_mpi.exe: $(OBJS) simulation_async_affiche_mpi.cpp
 	$(CXX) $(CXXFLAGS) $(OBJS) simulation_async_affiche_mpi.cpp -o simulation_async_affiche_mpi.exe $(LIBS)
+
+simulation_async_omp.exe:	$(OBJS) simulation_async_omp.cpp
+	$(CXX) $(CXXFLAGS) $(OBJS) simulation_async_omp.cpp -o simulation_async_omp.exe $(LIBS)
+
 
 help:
 	@echo "Available targets : "
