@@ -30,9 +30,11 @@ Avec une parallélisation "naïve" les résultats sont différents des précéde
 
 Avec un nombre fixe d'individus de 100,000 au total, on constate un speedup de 1.63 si on utilise deux threads omp. Avec 3 et 4 threads on constate des speedup de seulement 1.33 et 1.51. Cela s'explique probablement par le fait que les informations doivent circuler entre les UC et que l'utilisation du cache est moins optimale. C'est donc avec 2 threads que la parallélisation est la plus efficace.
 
-| 100,000 individus  | simulation.exe | affiche_sync | affich_async | async_omp(1) | async_omp(2) | async_omp(3) | asycn_omp(4) |
-| :---------------:  | :------------: | :----------: | :----------: | :----------: | :----------: | :----------: | :----------: |
-| temps pour 300 pas | 13.6527        | 11.6128      | 6.2562       | 6.3192       | 3.8659       | 4.7591       | 4.1791       |
+| 100,000 individus       | simulation.exe | affiche_sync | affich_async | async_omp(1) | async_omp(2) | async_omp(3) | asycn_omp(4) |
+| :---------------:       | :------------: | :----------: | :----------: | :----------: | :----------: | :----------: | :----------: |
+| temps pour 300 pas      | 13.6527        | 11.6128      | 6.2562       | 6.3192       | 3.8659       | 4.7591       | 4.1791       |
+| speedup /simulation.exe | 1              | 1.18         | 2.18         | 2.16         | 3.53         | 2.87         | 3.23         |
+| speedup /async_omp(1)   |                |              |              | 1            | 1.63         | 1.33         | 1.51         |
 
 
 
