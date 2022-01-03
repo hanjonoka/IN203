@@ -27,8 +27,12 @@ simulation_async_omp.cpp
 On parallélise avec omp la boucle sur les individus qui les contamine et les fait se déplacer car c'est là que le programme prend le plus de temps.
 Avec une parallélisation "naïve" les résultats sont différents des précédents. En effet, les individus ne sont plus traités dans l'ordre dans lequel ils sont dans la population, mais plutôt dans un ordre qui dépend du découpage fait par omp et de la vitesse de traitement des threads. En conséquent, le moteur de génération pseudo aléatoire des objets grippe et agents ne génèrent plus les même nombres pour les même individus lors de l'appel de la métode estContaminé(). Il faut donc modifier individu.cpp pour que les tirages aléatoires des durées d'incubation et d'infection soient faites par les individus et non par l'objet grippe ou agent. Ainsi, quelque soit l'ordre dans lequel sont traités les individus, on a le même résultat.
 
-Pour les résultats des tests de temps, voir le excel.
+
 Avec un nombre fixe d'individus de 100,000 au total, on constate un speedup de 1.63 si on utilise deux threads omp. Avec 3 et 4 threads on constate des speedup de seulement 1.33 et 1.51. Cela s'explique probablement par le fait que les informations doivent circuler entre les UC et que l'utilisation du cache est moins optimale. C'est donc avec 2 threads que la parallélisation est la plus efficace.
+
+| 100,000 individus  | simulation.exe | affiche_sync | affich_async | async_omp(1) | async_omp(2) | async_omp(3) | asycn_omp(4) |
+| :---------------:  | :------------: | :----------: | :----------: | :----------: | :----------: | :----------: | :----------: |
+| temps pour 300 pas | 13.6527        | 11.6128      | 6.2562       | 6.3192       | 3.8659       | 4.7591       | 4.1791       |
 
 
 
