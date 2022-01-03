@@ -11,14 +11,14 @@ public:
     AgentPathogène( unsigned int graine_aléatoire );
 
 
-    int nombreJoursAsymptomatique(std::default_random_engine moteur)
+    int nombreJoursAsymptomatique()
     {
-        return int(m_générateur_asymptomatique(moteur));
+        return int(m_générateur_symptomatique(m_moteur_stochastique));
     }
 
-    int nombreJoursSymptomatique(std::default_random_engine moteur) 
+    int nombreJoursSymptomatique() 
     {
-        return int(m_générateur_symptomatique(moteur));
+        return int(m_générateur_symptomatique(m_moteur_stochastique));
     }
 
     /* Paramètres de l'agent pathogène avec valeurs par défaut */

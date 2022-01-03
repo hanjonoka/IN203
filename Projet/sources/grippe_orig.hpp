@@ -29,14 +29,14 @@ public:
         return int(m_générateur_date_importation(m_moteur_stochastique));
     }
 
-    int nombreJoursIncubation(std::default_random_engine moteur)
+    int nombreJoursIncubation()
     {
-        return int(m_générateur_incubation(moteur));
+        return int(m_générateur_incubation(m_moteur_stochastique));
     }
 
-    int nombreJoursSymptomatique(std::default_random_engine moteur) 
+    int nombreJoursSymptomatique() 
     {
-        return int(m_générateur_symptomatique(moteur));
+        return int(m_générateur_symptomatique(m_moteur_stochastique));
     }
 
 private:

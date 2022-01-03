@@ -86,13 +86,6 @@ private:
     std::uniform_int_distribution<int> m_générateur_déplacement;
     std::uniform_real_distribution<double> m_générateur_maladie;
     std::uniform_int_distribution<int> m_générateur_âge;
-
-    std::gamma_distribution<double>  m_générateur_incubation_grippe;
-    std::gamma_distribution<double>  m_générateur_symptomatique_grippe;
-
-    std::gamma_distribution<double> m_générateur_asymptomatique_agent;
-    std::gamma_distribution<double> m_générateur_symptomatique_agent;
-
 };
 }
 

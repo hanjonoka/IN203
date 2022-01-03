@@ -9,6 +9,8 @@
 # include <mpi.h>
 #include <omp.h>
 
+#define NUM_THREADS 4
+
 void màjStatistique( épidémie::Grille& grille, std::vector<épidémie::Individu> const& individus )
 {
     for ( auto& statistique : grille.getStatistiques() )
@@ -101,7 +103,7 @@ void simulation(bool affiche, MPI_Comm comm)
 
         épidémie::ContexteGlobal contexte;
         // contexte.déplacement_maximal = 1; <= Si on veut moins de brassage
-        // contexte.taux_population = 400'000;
+        // contexte.taux_population = 100'000 * NUM_THREADS;
         //contexte.taux_population = 1'000;
         contexte.interactions.β = 60.;
         std::vector<épidémie::Individu> population;
@@ -176,7 +178,7 @@ void simulation(bool affiche, MPI_Comm comm)
             màjStatistique(grille, population);
             // On parcout la population pour voir qui est contaminé et qui ne l'est pas, d'abord pour la grippe puis pour l'agent pathogène
             std::size_t compteur_grippe = 0, compteur_agent = 0, mouru = 0;
-            #pragma omp parallel for
+            #pragma omp parallel for reduction(+:compteur_grippe, compteur_agent, mouru)
             for ( auto& personne : population )
             {
                 if (personne.testContaminationGrippe(grille, contexte.interactions, grippe, agent))
@@ -227,7 +229,7 @@ void simulation(bool affiche, MPI_Comm comm)
             // std::cout << "Process " << rank << " : \tTemps calcul = " << calc_time.count() 
             //     << "\n\t\tTemps total : " << total_time.count() << std::endl;
             output << jours_écoulés << "\t" << grille.nombreTotalContaminésGrippe() << "\t"
-               << grille.nombreTotalContaminésAgentPathogène() << "\t" << total_time.count() << "\t" << time_from_start.count() << std::endl;
+               << grille.nombreTotalContaminésAgentPathogène() << "\t" << total_time.count() << "\t" << time_from_start.count() << "\t" << population.size() << std::endl;
 
             jours_écoulés += 1;
         }
@@ -297,7 +299,7 @@ int main(int argc, char* argv[])
     int rank;
     MPI_Comm_rank(globComm, &rank);
 
-    omp_set_num_threads(4);
+    omp_set_num_threads(NUM_THREADS);
 
 
     // parse command-line

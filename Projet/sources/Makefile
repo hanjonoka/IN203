@@ -63,6 +63,9 @@ simulation_async_affiche_mpi.exe: $(OBJS) simulation_async_affiche_mpi.cpp
 simulation_async_omp.exe:	$(OBJS) simulation_async_omp.cpp
 	$(CXX) $(CXXFLAGS) $(OBJS) simulation_async_omp.cpp -o simulation_async_omp.exe $(LIBS)
 
+vlad.exe:	$(OBJS) vlad.cpp
+	$(CXX) $(CXXFLAGS) $(OBJS) vlad.cpp -o vlad.exe $(LIBS)
+
 
 help:
 	@echo "Available targets : "
