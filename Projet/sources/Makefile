@@ -10,7 +10,7 @@ CXXFLAGS += -O3 -march=native -Wall
 endif
 
 LIBS = $(LIB) `sdl2-config --cflags` -lSDL2_ttf -lSDL2_image  `sdl2-config --libs` 
-ALL= simulation.exe simulation_sync_affiche_mpi.exe simulation_async_affiche_mpi.exe simulation_async_omp.exe
+ALL= simulation.exe simulation_sync_affiche_mpi.exe simulation_async_affiche_mpi.exe simulation_async_omp.exe simulation_timed.exe
 
 default:	help
 
@@ -50,6 +50,9 @@ graphisme/src/SDL2/image.o : graphisme/src/SDL2/window.hpp graphisme/src/SDL2/im
 
 simulation.exe:	$(OBJS) simulation.cpp
 	$(CXX) $(CXXFLAGS) $(OBJS) simulation.cpp -o simulation.exe $(LIBS)
+
+simulation_timed.exe:	$(OBJS) simulation_timed.cpp
+	$(CXX) $(CXXFLAGS) $(OBJS) simulation_timed.cpp -o simulation_timed.exe $(LIBS)
 
 simulation_sync_affiche_mpi.exe: $(OBJS) simulation_sync_affiche_mpi.cpp
 	$(CXX) $(CXXFLAGS) $(OBJS) simulation_sync_affiche_mpi.cpp -o simulation_sync_affiche_mpi.exe $(LIBS)

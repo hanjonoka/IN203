@@ -122,12 +122,14 @@ void simulation(bool affiche)
 
     épidémie::Grippe grippe(0);
 
+    std::chrono::time_point<std::chrono::system_clock> startup, start, mid, end;
+    startup = std::chrono::system_clock::now();
+    std::chrono::duration<double> time_from_start;
 
     std::cout << "Début boucle épidémie" << std::endl << std::flush;
 
     while (!quitting)
     {
-        std::chrono::time_point<std::chrono::system_clock> start, mid, end;
         start = std::chrono::system_clock::now();
         auto events = queue.pull_events();
         for ( const auto& e : events)
@@ -194,18 +196,21 @@ void simulation(bool affiche)
         /*std::cout << jours_écoulés << "\t" << grille.nombreTotalContaminésGrippe() << "\t"
                   << grille.nombreTotalContaminésAgentPathogène() << std::endl;*/
 
-        output << jours_écoulés << "\t" << grille.nombreTotalContaminésGrippe() << "\t"
-               << grille.nombreTotalContaminésAgentPathogène() << std::endl;
-        jours_écoulés += 1;
+        // output << jours_écoulés << "\t" << grille.nombreTotalContaminésGrippe() << "\t"
+        //        << grille.nombreTotalContaminésAgentPathogène() << std::endl;
 
         end = std::chrono::system_clock::now();
         std::chrono::duration<double> total_time = end-start;
         std::chrono::duration<double> sim_time = mid - start;
         std::chrono::duration<double> affiche_time = end - mid;
-        std::cout << "Temps : " << sim_time.count() << " , " << affiche_time.count() << " , " << total_time.count()
-                << " eff : " << sim_time.count()/total_time.count()
-              << std::endl;
+        time_from_start = end-startup;
+        // std::cout << "Temps : " << sim_time.count() << " , " << affiche_time.count() << " , " << total_time.count()
+        //         << " eff : " << sim_time.count()/total_time.count()
+        //       << std::endl;
+        output << jours_écoulés << "\t" << grille.nombreTotalContaminésGrippe() << "\t"
+            << grille.nombreTotalContaminésAgentPathogène() << "\t" << total_time.count() << "\t" << time_from_start.count() << std::endl;
 
+        jours_écoulés += 1;
     }// Fin boucle temporelle
     output.close();
 }

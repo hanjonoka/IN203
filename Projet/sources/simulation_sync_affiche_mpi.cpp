@@ -133,11 +133,14 @@ void simulation(bool affiche, MPI_Comm comm)
         std::ofstream output("Courbe_sync_mpi.dat");
         output << "# jours_écoulés \t nombreTotalContaminésGrippe \t nombreTotalContaminésAgentPathogène()" << std::endl;
 
+        std::chrono::time_point<std::chrono::system_clock> startup, start, mid, end;
+        startup = std::chrono::system_clock::now();
+        std::chrono::duration<double> time_from_start;
+
         std::cout << "Début boucle épidémie" << std::endl << std::flush;
 
         while (!quitting)
         {
-            std::chrono::time_point<std::chrono::system_clock> start, mid, end;
             start = std::chrono::system_clock::now();
 
             auto events = queue.pull_events();
@@ -201,15 +204,19 @@ void simulation(bool affiche, MPI_Comm comm)
             auto const& statistiques = grille.getStatistiques();
             MPI_Send(statistiques.data(),statistiques.size(),dt_stat,0,0,comm);
 
-            output << jours_écoulés << "\t" << grille.nombreTotalContaminésGrippe() << "\t"
-               << grille.nombreTotalContaminésAgentPathogène() << std::endl;
+            // output << jours_écoulés << "\t" << grille.nombreTotalContaminésGrippe() << "\t"
+            //    << grille.nombreTotalContaminésAgentPathogène() << std::endl;
 
-            jours_écoulés += 1;
             end = std::chrono::system_clock::now();
             std::chrono::duration<double> total_time = end-start;
             std::chrono::duration<double> calc_time = mid-start;
-            std::cout << "Process " << rank << " : \tTemps calcul = " << calc_time.count() 
-                << "\n\t\tTemps total : " << total_time.count() << std::endl;
+            time_from_start = end-startup;
+            // std::cout << "Process " << rank << " : \tTemps calcul = " << calc_time.count() 
+            //     << "\n\t\tTemps total : " << total_time.count() << std::endl;
+            output << jours_écoulés << "\t" << grille.nombreTotalContaminésGrippe() << "\t"
+               << grille.nombreTotalContaminésAgentPathogène() << "\t" << total_time.count() << "\t" << time_from_start.count() << std::endl;
+
+            jours_écoulés += 1;
         }
         output.close();
         // mid = std::chrono::system_clock::now();
@@ -253,7 +260,7 @@ void simulation(bool affiche, MPI_Comm comm)
             // output.close();
             end = std::chrono::system_clock::now();
             std::chrono::duration<double> total_time = end-start;
-            std::cout << "Process " << rank << " : \tTemps affichage = " << total_time.count() << std::endl;
+            //std::cout << "Process " << rank << " : \tTemps affichage = " << total_time.count() << std::endl;
         }
     } 
     /*std::cout << jours_écoulés << "\t" << grille.nombreTotalContaminésGrippe() << "\t"
