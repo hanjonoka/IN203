@@ -10,7 +10,7 @@ CXXFLAGS += -O3 -march=native -Wall
 endif
 
 LIBS = $(LIB) `sdl2-config --cflags` -lSDL2_ttf -lSDL2_image  `sdl2-config --libs` 
-ALL= simulation.exe simulation_sync_affiche_mpi.exe simulation_async_affiche_mpi.exe simulation_async_omp.exe simulation_timed.exe
+ALL= simulation.exe simulation_sync_affiche_mpi.exe simulation_async_affiche_mpi.exe simulation_async_omp.exe simulation_timed.exe simulation_async_mpi.exe
 
 default:	help
 
@@ -63,9 +63,8 @@ simulation_async_affiche_mpi.exe: $(OBJS) simulation_async_affiche_mpi.cpp
 simulation_async_omp.exe:	$(OBJS) simulation_async_omp.cpp
 	$(CXX) $(CXXFLAGS) $(OBJS) simulation_async_omp.cpp -o simulation_async_omp.exe $(LIBS)
 
-vlad.exe:	$(OBJS) vlad.cpp
-	$(CXX) $(CXXFLAGS) $(OBJS) vlad.cpp -o vlad.exe $(LIBS)
-
+simulation_async_mpi.exe:	$(OBJS) simulation_async_mpi.cpp
+	$(CXX) $(CXXFLAGS) $(OBJS) simulation_async_mpi.cpp -o simulation_async_mpi.exe $(LIBS)
 
 help:
 	@echo "Available targets : "

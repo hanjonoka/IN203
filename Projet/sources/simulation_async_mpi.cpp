@@ -7,9 +7,6 @@
 #include "graphisme/src/SDL2/sdl2.hpp"
 #include <chrono>
 # include <mpi.h>
-#include <omp.h>
-
-#define NUM_THREADS 2
 
 void màjStatistique( épidémie::Grille& grille, std::vector<épidémie::Individu> const& individus )
 {
@@ -78,15 +75,23 @@ void afficheSimulation(sdl2::window& écran, std::vector<épidémie::Grille::Sta
     écran << sdl2::flush;
 }
 
-void simulation(bool affiche, MPI_Comm comm)
+void simulation(bool affiche, MPI_Comm globComm)
 {
+    int rank;
+    MPI_Comm_rank(globComm, &rank);
+
+    MPI_Comm subComm;
+    int color;
+    rank == 0 ? color = 0 : color = 1;
+    MPI_Comm_split(globComm, color, rank, &subComm);
+
+    int subrank;
+    MPI_Comm_rank(subComm,&subrank);
+
     std::size_t jours_écoulés = 0;
     sdl2::event_queue queue;
 
     bool quitting = false;
-
-    int rank;
-    MPI_Comm_rank(comm, &rank);
 
     MPI_Datatype dt_stat;
     MPI_Type_contiguous(3, MPI_INT, &dt_stat);
@@ -103,7 +108,7 @@ void simulation(bool affiche, MPI_Comm comm)
 
         épidémie::ContexteGlobal contexte;
         // contexte.déplacement_maximal = 1; <= Si on veut moins de brassage
-        // contexte.taux_population = 100'000 * NUM_THREADS;
+        // contexte.taux_population = 400'000;
         //contexte.taux_population = 1'000;
         contexte.interactions.β = 60.;
         std::vector<épidémie::Individu> population;
@@ -131,16 +136,16 @@ void simulation(bool affiche, MPI_Comm comm)
         épidémie::Grippe grippe(0);
 
         int dim[2] = {largeur_grille, hauteur_grille};
-        MPI_Send(dim,2,MPI_INT,0,0,comm); //envoie de la taille de la grille
+        MPI_Send(dim,2,MPI_INT,0,0,globComm); //envoie de la taille de la grille
 
-        std::ofstream output("Courbe_async_omp.dat");
-        output << "# jours_écoulés \t nombreTotalContaminésGrippe \t nombreTotalContaminésAgentPathogène()" << std::endl;
+        std::ofstream output("Courbe_async_affiche_mpi.dat");
+        output << "# jours_écoulés \t nombreTotalContaminésGrippe \t nombreTotalContaminésAgentPathogène() \t temps pas \t temps total" << std::endl;
+
+        std::cout << "Début boucle épidémie" << std::endl << std::flush;
 
         std::chrono::time_point<std::chrono::system_clock> startup, start, mid, end;
         startup = std::chrono::system_clock::now();
         std::chrono::duration<double> time_from_start;
-
-        std::cout << "Début boucle épidémie" << std::endl << std::flush;
 
         while (!quitting)
         {
@@ -178,7 +183,6 @@ void simulation(bool affiche, MPI_Comm comm)
             màjStatistique(grille, population);
             // On parcout la population pour voir qui est contaminé et qui ne l'est pas, d'abord pour la grippe puis pour l'agent pathogène
             std::size_t compteur_grippe = 0, compteur_agent = 0, mouru = 0;
-            #pragma omp parallel for reduction(+:compteur_grippe, compteur_agent, mouru)
             for ( auto& personne : population )
             {
                 if (personne.testContaminationGrippe(grille, contexte.interactions, grippe, agent))
@@ -208,19 +212,17 @@ void simulation(bool affiche, MPI_Comm comm)
             auto const& statistiques = grille.getStatistiques();
 
             int flag = 0;
-            MPI_Iprobe(0,0,comm,&flag,MPI_STATUS_IGNORE);
+            MPI_Iprobe(0,0,globComm,&flag,MPI_STATUS_IGNORE);
             if(flag){
                 MPI_Request request_ping;
-                MPI_Irecv(&flag,1,MPI_INT,0,0,comm,&request_ping);
+                MPI_Irecv(&flag,1,MPI_INT,0,0,globComm,&request_ping);
                 MPI_Request request_stat;
                 MPI_Request request_jours;
-                MPI_Isend(statistiques.data(),statistiques.size(),dt_stat,0,0,comm,&request_stat);
-                MPI_Isend(&jours_écoulés,1,MPI_INT,0,0,comm,&request_jours);
+                MPI_Isend(statistiques.data(),statistiques.size(),dt_stat,0,0,globComm,&request_stat);
+                MPI_Isend(&jours_écoulés,1,MPI_INT,0,0,globComm,&request_jours);
                 MPI_Wait(&request_stat,MPI_STATUS_IGNORE); //avant de modifier statistiques on doit s'assurer qu'elle a été reçue en entier.
             }
 
-            // output << jours_écoulés << "\t" << grille.nombreTotalContaminésGrippe() << "\t"
-            //    << grille.nombreTotalContaminésAgentPathogène() << std::endl;
 
             end = std::chrono::system_clock::now();
             std::chrono::duration<double> total_time = end-start;
@@ -229,7 +231,7 @@ void simulation(bool affiche, MPI_Comm comm)
             // std::cout << "Process " << rank << " : \tTemps calcul = " << calc_time.count() 
             //     << "\n\t\tTemps total : " << total_time.count() << std::endl;
             output << jours_écoulés << "\t" << grille.nombreTotalContaminésGrippe() << "\t"
-               << grille.nombreTotalContaminésAgentPathogène() << "\t" << total_time.count() << "\t" << time_from_start.count() << "\t" << population.size() << std::endl;
+               << grille.nombreTotalContaminésAgentPathogène() << "\t" << total_time.count() << "\t" << time_from_start.count() << std::endl;
 
             jours_écoulés += 1;
         }
@@ -245,7 +247,7 @@ void simulation(bool affiche, MPI_Comm comm)
         sdl2::window écran("Simulation épidémie de grippe", {largeur_écran,hauteur_écran});
 
         int dim[2];
-        MPI_Recv(dim,2,MPI_INT,1,0,comm, MPI_STATUS_IGNORE);
+        MPI_Recv(dim,2,MPI_INT,1,0,globComm, MPI_STATUS_IGNORE);
         int largeur_grille = dim[0];
         int hauteur_grille = dim[1]; 
 
@@ -267,9 +269,9 @@ void simulation(bool affiche, MPI_Comm comm)
 
             int ping = 0;
             MPI_Request request;
-            MPI_Isend(&ping,1,MPI_INT,1,0,comm,&request);
-            MPI_Recv(statistiques.data(),largeur_grille*hauteur_grille, dt_stat, 1, 0, comm, MPI_STATUS_IGNORE);
-            MPI_Recv(&jours_écoulés,1,MPI_INT,1,0,comm,MPI_STATUS_IGNORE);
+            MPI_Isend(&ping,1,MPI_INT,1,0,globComm,&request);
+            MPI_Recv(statistiques.data(),largeur_grille*hauteur_grille, dt_stat, 1, 0, globComm, MPI_STATUS_IGNORE);
+            MPI_Recv(&jours_écoulés,1,MPI_INT,1,0,globComm,MPI_STATUS_IGNORE);
 
             afficheSimulation(écran, statistiques, largeur_grille, hauteur_grille, jours_écoulés);
 
@@ -292,14 +294,6 @@ int main(int argc, char* argv[])
     MPI_Comm_dup(MPI_COMM_WORLD, &globComm);
     int nbp;
     MPI_Comm_size(globComm, &nbp);
-    if(nbp!=2){
-        std::cout << "restart program with exactly 2 process. Exiting..." << std::endl;
-        return 1;
-    }
-    int rank;
-    MPI_Comm_rank(globComm, &rank);
-
-    omp_set_num_threads(NUM_THREADS);
 
 
     // parse command-line
