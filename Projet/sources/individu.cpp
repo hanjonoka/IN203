@@ -16,7 +16,9 @@
         m_générateur_asymptomatique_agent(21.*21./25., 25./21.),
         m_générateur_symptomatique_agent(144./16., 16./12.),
         m_générateur_incubation_grippe(40, 0.05),
-        m_générateur_symptomatique_grippe(16.,0.25)
+        m_générateur_symptomatique_grippe(16.,0.25),
+
+        graine_init(graine_aléatoire-1)
 {
     if (estNé)
     {

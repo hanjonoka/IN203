@@ -9,7 +9,7 @@
 #include <mpi.h>
 
 
-void màjStatistique( épidémie::Grille& grille, std::vector<épidémie::Individu> const& individus )
+void màjStatistique( épidémie::Grille& grille, std::vector<épidémie::Individu> const& individus, MPI_Comm comm )
 {
     for ( auto& statistique : grille.getStatistiques() )
     {
@@ -44,6 +44,7 @@ void màjStatistique( épidémie::Grille& grille, std::vector<épidémie::Indivi
             }
         }
     }
+
 }
 
 void afficheSimulation(sdl2::window& écran, std::vector<épidémie::Grille::StatistiqueParCase> statistiques, int largeur_grille, int hauteur_grille, std::size_t jour)
@@ -90,6 +91,12 @@ void simulation(bool affiche, MPI_Comm globComm)
     int subrank;
     MPI_Comm_rank(subComm,&subrank);
 
+    int nbp;
+    MPI_Comm_size(globComm, &nbp);
+
+    int nbpsim;
+    MPI_Comm_size(subComm, &nbpsim);
+
     std::size_t jours_écoulés = 0;
     sdl2::event_queue queue;
 
@@ -110,27 +117,33 @@ void simulation(bool affiche, MPI_Comm globComm)
 
         épidémie::ContexteGlobal contexte;
         // contexte.déplacement_maximal = 1; <= Si on veut moins de brassage
-        // contexte.taux_population = 400'000;
+        contexte.taux_population = (100'000 / nbpsim) * nbpsim; //pour avoir un nombre d'individus divisible par le nombre de process
+        size_t pop_par_proc = contexte.taux_population / nbpsim;
+        std::cout << rank << " : " << pop_par_proc << std::endl;
+        
         //contexte.taux_population = 1'000;
         contexte.interactions.β = 60.;
         std::vector<épidémie::Individu> population;
-        population.reserve(contexte.taux_population);
+        population.reserve(pop_par_proc);
         épidémie::Grille grille{contexte.taux_population};
 
         auto [largeur_grille,hauteur_grille] = grille.dimension();
         // L'agent pathogène n'évolue pas et reste donc constant...
-        épidémie::AgentPathogène agent(graine_aléatoire++);
+        épidémie::AgentPathogène agent(graine_aléatoire++); // on aura le même pour tous les process car la graine est identique
+
+        graine_aléatoire += pop_par_proc*subrank; //pour faire comme si on avait itéré sur les autres process avant.
         // Initialisation de la population initiale :
-        for (std::size_t i = 0; i < contexte.taux_population; ++i )
+        for (std::size_t i = 0; i < pop_par_proc; ++i )
         {
             std::default_random_engine motor(100*(i+1));
             population.emplace_back(graine_aléatoire++, contexte.espérance_de_vie, contexte.déplacement_maximal);
             population.back().setPosition(largeur_grille, hauteur_grille);
-            if (porteur_pathogène(motor) < 0.2)
+            if (porteur_pathogène(motor) < 0.2) // ne garantie pas les mêmes résultats avec la parallélisation
             {
-                population.back().estContaminé(agent);   
+                population.back().estContaminé(agent);
             }
         }
+
 
         int         jour_apparition_grippe = 0;
         int         nombre_immunisés_grippe= (contexte.taux_population*23)/100;
@@ -138,10 +151,14 @@ void simulation(bool affiche, MPI_Comm globComm)
         épidémie::Grippe grippe(0);
 
         int dim[2] = {largeur_grille, hauteur_grille};
-        MPI_Send(dim,2,MPI_INT,0,0,globComm); //envoie de la taille de la grille
-
-        std::ofstream output("Courbe_async_affiche_mpi.dat");
-        output << "# jours_écoulés \t nombreTotalContaminésGrippe \t nombreTotalContaminésAgentPathogène() \t temps pas \t temps total" << std::endl;
+        if(rank==1){
+            MPI_Send(dim,2,MPI_INT,0,0,globComm); //envoie de la taille de la grille
+        }
+        std::ofstream output;
+        if(rank==1){
+            output.open("Courbe_async_mpi.dat");
+            output << "# jours_écoulés \t nombreTotalContaminésGrippe \t nombreTotalContaminésAgentPathogène() \t temps pas \t temps total" << std::endl;
+        }
 
         std::cout << "Début boucle épidémie" << std::endl << std::flush;
 
@@ -165,24 +182,58 @@ void simulation(bool affiche, MPI_Comm globComm)
                 jour_apparition_grippe = grippe.dateCalculImportationGrippe();
                 grippe.calculNouveauTauxTransmission();
                 // 23% des gens sont immunisés. On prend les 23% premiers
-                for ( int ipersonne = 0; ipersonne < nombre_immunisés_grippe; ++ipersonne)
-                {
-                    population[ipersonne].devientImmuniséGrippe();
-                }
-                for ( int ipersonne = nombre_immunisés_grippe; ipersonne < int(contexte.taux_population); ++ipersonne )
-                {
-                    population[ipersonne].redevientSensibleGrippe();
+                // for ( int ipersonne = 0; ipersonne < nombre_immunisés_grippe; ++ipersonne)
+                // {
+                //     population[ipersonne].devientImmuniséGrippe();
+                // }
+                // for ( int ipersonne = nombre_immunisés_grippe; ipersonne < int(contexte.taux_population); ++ipersonne )
+                // {
+                //     population[ipersonne].redevientSensibleGrippe();
+                // }
+
+                for(unsigned int ipersonne = 0; ipersonne < population.size(); ipersonne++){ //on prend les 23% premiers par ordre de création en séquentiel. le champ Individu.graine_init sert d'indentifiant sur les personnes
+                    if((int)population[ipersonne].getGraineInit() < nombre_immunisés_grippe){
+                        population[ipersonne].devientImmuniséGrippe();
+                    }else{
+                        population[ipersonne].redevientSensibleGrippe();
+                    }
                 }
             }
             if (jours_écoulés%365 == std::size_t(jour_apparition_grippe))
             {
-                for (int ipersonne = nombre_immunisés_grippe; ipersonne < nombre_immunisés_grippe + 25; ++ipersonne )
+                std::cout << rank << " début de la grippe" <<std::endl;
+                // for (int ipersonne = nombre_immunisés_grippe; ipersonne < nombre_immunisés_grippe + 25; ++ipersonne )
+                // {
+                //     population[ipersonne].estContaminé(grippe);
+                // }
+
+                // for(auto personne : population) //plus lent mais nécessaire si on veut les meme résultats.
+                // {
+                //     if((int)personne.getGraineInit() >= nombre_immunisés_grippe && (int)personne.getGraineInit() < nombre_immunisés_grippe + 25){
+                //         personne.estContaminé(grippe);
+                //         std::cout << rank << " " << personne.getGraineInit() << " a la grippe" << std::endl;
+                //     }
+                // }
+                for(unsigned int ipersonne = 0; ipersonne < population.size(); ipersonne++)
                 {
-                    population[ipersonne].estContaminé(grippe);
+                    if((int)population[ipersonne].getGraineInit() >= nombre_immunisés_grippe && (int)population[ipersonne].getGraineInit() < nombre_immunisés_grippe + 25){
+                        population[ipersonne].estContaminé(grippe);
+                    }
                 }
             }
+
             // Mise à jour des statistiques pour les cases de la grille :
-            màjStatistique(grille, population);
+            // il faut faire attention à ce que tous les process aient les mêmes statistiques après cette fonction
+            // pour que les contaminations se fassent correctement.
+
+            màjStatistique(grille, population, subComm);
+            // chaque process a mis à jour ses statistiques, il faut maintenant les rassembler.
+            // c'est une opération de réduction avec une somme.
+            // MPI_Datatype dt_stat;
+            // MPI_Type_contiguous(3, MPI_INT, &dt_stat);
+            // MPI_Type_commit(&dt_stat);
+            MPI_Allreduce(MPI_IN_PLACE, grille.getStatistiques().data(), grille.getStatistiques().size() * 3, MPI_INT, MPI_SUM, subComm);
+
             // On parcout la population pour voir qui est contaminé et qui ne l'est pas, d'abord pour la grippe puis pour l'agent pathogène
             std::size_t compteur_grippe = 0, compteur_agent = 0, mouru = 0;
             for ( auto& personne : population )
@@ -211,20 +262,26 @@ void simulation(bool affiche, MPI_Comm globComm)
             
             mid = std::chrono::system_clock::now();
 
+
+            // ici tous les process ont la même valeur de statistiques puisqu'elle a été mise à jour à majStatistiques et que la boucle après ne la modifie pas.
+            // seul un process doit donc l'envoyer si néccessaire.
             auto const& statistiques = grille.getStatistiques();
 
-            int flag = 0;
-            MPI_Iprobe(0,0,globComm,&flag,MPI_STATUS_IGNORE);
-            if(flag){
-                MPI_Request request_ping;
-                MPI_Irecv(&flag,1,MPI_INT,0,0,globComm,&request_ping);
-                MPI_Request request_stat;
-                MPI_Request request_jours;
-                MPI_Isend(statistiques.data(),statistiques.size(),dt_stat,0,0,globComm,&request_stat);
-                MPI_Isend(&jours_écoulés,1,MPI_INT,0,0,globComm,&request_jours);
-                MPI_Wait(&request_stat,MPI_STATUS_IGNORE); //avant de modifier statistiques on doit s'assurer qu'elle a été reçue en entier.
+            if(rank==1){
+                int flag = 0;
+                MPI_Iprobe(0,0,globComm,&flag,MPI_STATUS_IGNORE);
+                if(flag){
+                    // std::cout << rank << " : envoi jour " << jours_écoulés << std::endl;
+                    MPI_Request request_ping;
+                    MPI_Irecv(&flag,1,MPI_INT,0,0,globComm,&request_ping);
+                    MPI_Request request_stat;
+                    MPI_Request request_jours;
+                    MPI_Isend(statistiques.data(),statistiques.size(),dt_stat,0,0,globComm,&request_stat);
+                    MPI_Isend(&jours_écoulés,1,MPI_INT,0,0,globComm,&request_jours);
+                    MPI_Wait(&request_stat,MPI_STATUS_IGNORE); //avant de modifier statistiques on doit s'assurer qu'elle a été reçue en entier.
+                }
             }
-
+            MPI_Barrier(subComm); // on synchronise les process pour éviter les incohérences (en fait pas nécessaire puisque l'opération de réduction est bloquante)
 
             end = std::chrono::system_clock::now();
             std::chrono::duration<double> total_time = end-start;
@@ -232,8 +289,13 @@ void simulation(bool affiche, MPI_Comm globComm)
             time_from_start = end-startup;
             // std::cout << "Process " << rank << " : \tTemps calcul = " << calc_time.count() 
             //     << "\n\t\tTemps total : " << total_time.count() << std::endl;
-            output << jours_écoulés << "\t" << grille.nombreTotalContaminésGrippe() << "\t"
+            if(rank==1){
+                output << jours_écoulés << "\t" << grille.nombreTotalContaminésGrippe() << "\t"
                << grille.nombreTotalContaminésAgentPathogène() << "\t" << total_time.count() << "\t" << time_from_start.count() << std::endl;
+                // std::cout << jours_écoulés << "\t" << grille.nombreTotalContaminésGrippe() << "\t"
+                    // << grille.nombreTotalContaminésAgentPathogène() << "\t" << total_time.count() << "\t" << time_from_start.count() << std::endl;
+
+            }
 
             jours_écoulés += 1;
         }
@@ -271,9 +333,11 @@ void simulation(bool affiche, MPI_Comm globComm)
 
             int ping = 0;
             MPI_Request request;
+            // std::cout << rank << " : ping" << std::endl;
             MPI_Isend(&ping,1,MPI_INT,1,0,globComm,&request);
             MPI_Recv(statistiques.data(),largeur_grille*hauteur_grille, dt_stat, 1, 0, globComm, MPI_STATUS_IGNORE);
             MPI_Recv(&jours_écoulés,1,MPI_INT,1,0,globComm,MPI_STATUS_IGNORE);
+            // std::cout << rank << " : " << jours_écoulés << " jours" << std::endl;
 
             afficheSimulation(écran, statistiques, largeur_grille, hauteur_grille, jours_écoulés);
 
@@ -294,8 +358,7 @@ int main(int argc, char* argv[])
     MPI_Init( &argc, &argv);
     MPI_Comm globComm;
     MPI_Comm_dup(MPI_COMM_WORLD, &globComm);
-    int nbp;
-    MPI_Comm_size(globComm, &nbp);
+
 
 
     // parse command-line

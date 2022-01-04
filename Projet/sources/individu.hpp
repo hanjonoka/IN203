@@ -65,9 +65,13 @@ public:
     void estContaminé( Grippe& grippe );
     void estContaminé( AgentPathogène& agent );
 
+    unsigned int getGraineInit() const{
+        return graine_init;
+    }
 
 
-private:
+
+public:
     struct {
         Sensibilité sensibilité = Sensibilité::Sensible;
         int temps_incubation = 0;
@@ -92,6 +96,8 @@ private:
 
     std::gamma_distribution<double> m_générateur_asymptomatique_agent;
     std::gamma_distribution<double> m_générateur_symptomatique_agent;
+
+    unsigned int graine_init;
 
 };
 }
