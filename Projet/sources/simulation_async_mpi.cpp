@@ -135,10 +135,10 @@ void simulation(bool affiche, MPI_Comm globComm)
         // Initialisation de la population initiale :
         for (std::size_t i = 0; i < pop_par_proc; ++i )
         {
-            std::default_random_engine motor(100*(i+1));
+            std::default_random_engine motor(100*(i+1+(pop_par_proc*subrank))); //pour avoir la même seed qu'en séquentiel
             population.emplace_back(graine_aléatoire++, contexte.espérance_de_vie, contexte.déplacement_maximal);
             population.back().setPosition(largeur_grille, hauteur_grille);
-            if (porteur_pathogène(motor) < 0.2) // ne garantie pas les mêmes résultats avec la parallélisation
+            if (porteur_pathogène(motor) < 0.2)
             {
                 population.back().estContaminé(agent);
             }
@@ -191,8 +191,8 @@ void simulation(bool affiche, MPI_Comm globComm)
                 //     population[ipersonne].redevientSensibleGrippe();
                 // }
 
-                for(unsigned int ipersonne = 0; ipersonne < population.size(); ipersonne++){ //on prend les 23% premiers par ordre de création en séquentiel. le champ Individu.graine_init sert d'indentifiant sur les personnes
-                    if((int)population[ipersonne].getGraineInit() < nombre_immunisés_grippe){
+                for(unsigned int ipersonne = 0; ipersonne < population.size(); ++ipersonne){ //on prend les 23% premiers par ordre de création en séquentiel. le champ Individu.graine_init sert d'indentifiant sur les personnes
+                    if(ipersonne + (pop_par_proc * subrank) < (unsigned int) nombre_immunisés_grippe){
                         population[ipersonne].devientImmuniséGrippe();
                     }else{
                         population[ipersonne].redevientSensibleGrippe();
@@ -214,9 +214,9 @@ void simulation(bool affiche, MPI_Comm globComm)
                 //         std::cout << rank << " " << personne.getGraineInit() << " a la grippe" << std::endl;
                 //     }
                 // }
-                for(unsigned int ipersonne = 0; ipersonne < population.size(); ipersonne++)
+                for(unsigned int ipersonne = 0; ipersonne < population.size(); ++ipersonne)
                 {
-                    if((int)population[ipersonne].getGraineInit() >= nombre_immunisés_grippe && (int)population[ipersonne].getGraineInit() < nombre_immunisés_grippe + 25){
+                    if(ipersonne + (pop_par_proc * subrank) >= (unsigned int) nombre_immunisés_grippe && ipersonne + (pop_par_proc * subrank) < (unsigned int) nombre_immunisés_grippe + 25){
                         population[ipersonne].estContaminé(grippe);
                     }
                 }
