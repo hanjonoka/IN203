@@ -43,3 +43,8 @@ Avec un nombre fixe d'individus de 100,000 au total, on constate un speedup de 1
 # Question 2.5
 simulation_async_mpi.cpp
 
+Deux points sont importants :
+
+1) Il faut faire attention lors de l'initialisation à bien incrémenter les graines aléatoires dans tous les process pour faire comme si on était en séquentiel.
+
+2) Après la mise à jour des statisiques il faut faire une opération de réduction avec somme pour que tous les process qui font la simulation aient toutes les infos avant de traiter les contaminations et les déplacements. Un seul des process de la simulation a donc besoin d'envoyer les informations à l'affichage.
