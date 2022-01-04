@@ -6,7 +6,8 @@
 #include "individu.hpp"
 #include "graphisme/src/SDL2/sdl2.hpp"
 #include <chrono>
-# include <mpi.h>
+#include <mpi.h>
+
 
 void màjStatistique( épidémie::Grille& grille, std::vector<épidémie::Individu> const& individus )
 {
@@ -18,6 +19,7 @@ void màjStatistique( épidémie::Grille& grille, std::vector<épidémie::Indivi
     }
     auto [largeur,hauteur] = grille.dimension();
     auto& statistiques = grille.getStatistiques();
+
     for ( auto const& personne : individus )
     {
         auto pos = personne.position();
@@ -100,7 +102,7 @@ void simulation(bool affiche, MPI_Comm globComm)
     //################################################
     //calcul épidémie par le process 1
     //################################################
-    if(rank == 1){
+    if(rank >= 1){
 
         unsigned int graine_aléatoire = 1;
         std::uniform_real_distribution<double> porteur_pathogène(0.,1.);
