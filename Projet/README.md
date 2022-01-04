@@ -1,9 +1,13 @@
-# Prerequis
-
-    sudo apt install g++-10 
-    sudo apt install libsdl2-dev libsdl2-ttf-dev libsdl2-image-dev
-
-Et si besoin modifier Makefile et Make_linux.inc pour utiliser g++-10. 
+# lscpu
+Architecture:                    x86_64
+CPU op-mode(s):                  32-bit, 64-bit
+Byte Order:                      Little Endian
+Address sizes:                   39 bits physical, 48 bits virtual
+CPU(s):                          8
+On-line CPU(s) list:             0-7
+Thread(s) per core:              2
+Core(s) per socket:              4
+Socket(s):                       1
 
 
 # Question 2.1 : 
