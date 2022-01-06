@@ -175,9 +175,23 @@ int main(int nargs, char* argv[])
         taux = std::stod(argv[2]);
     std::cout << "Caracteristique de l'image : " << width << "x" << height << " => " << width*height << " pixels." << std::endl << std::flush;
 
+    std::chrono::time_point<std::chrono::system_clock> startDTF = std::chrono::system_clock::now();
     std::complex<double>* fourier = discretTransformFourier( width, height, image );
+    std::chrono::time_point<std::chrono::system_clock> endDTF = std::chrono::system_clock::now();
+    std::chrono::duration<double> timeDTF = endDTF - startDTF;
+    std::cout << "Temps DTF : " << timeDTF.count() << std::endl;
+ 
+    std::chrono::time_point<std::chrono::system_clock> startCSC = std::chrono::system_clock::now();
     auto sparse = compressSpectralComposition(width, height, fourier, taux);
+    std::chrono::time_point<std::chrono::system_clock> endCSC = std::chrono::system_clock::now();
+    std::chrono::duration<double> timeCSC = endCSC - startCSC;
+    std::cout << "Temps sélection plus grands coefs : " << timeCSC.count() << std::endl;
+
+    std::chrono::time_point<std::chrono::system_clock> startRecon = std::chrono::system_clock::now();
     unsigned char* compressed_img = inversePartialDiscretTransformFourier(sparse);
+    std::chrono::time_point<std::chrono::system_clock> endRecon = std::chrono::system_clock::now();
+    std::chrono::duration<double> timeRecon = endRecon - startRecon;
+    std::cout << "Temps reconstitution : " << timeRecon.count() << std::endl;
 
     auto error = lodepng_encode24_file("compress.png", compressed_img, width, height);
     if(error) std::cerr << "decoder error " << error << ": " << lodepng_error_text(error) << std::endl;
