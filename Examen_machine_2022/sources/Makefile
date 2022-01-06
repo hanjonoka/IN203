@@ -3,7 +3,7 @@ include Make_linux.inc
 #include Make_msys2.inc
 #include Make_osx.inc
 
-CXXFLAGS = -std=c++11 -fPIC
+CXXFLAGS = -std=c++11 -fPIC -fopenmp
 ifdef DEBUG
 CXXFLAGS += -g -O0 -Wall -fbounds-check -pedantic -D_GLIBCXX_DEBUG
 else
@@ -12,7 +12,7 @@ endif
 
 default:	help
 
-all:	fourier_compression.exe
+all:	fourier_compression.exe fourier_compression_omp.exe
 
 lodepng/lodepng.cpp:
 	git submodule init
@@ -20,6 +20,9 @@ lodepng/lodepng.cpp:
 
 fourier_compression.exe:	fourier_compression.cpp lodepng/lodepng.cpp
 	$(CXX) $(CXXFLAGS) -o fourier_compression.exe fourier_compression.cpp lodepng/lodepng.cpp $(LIB)
+
+fourier_compression_omp.exe:	fourier_compression_omp.cpp lodepng/lodepng.cpp
+	$(CXX) $(CXXFLAGS) -o fourier_compression_omp.exe fourier_compression_omp.cpp lodepng/lodepng.cpp $(LIB)
 
 help: 
 	@echo "Available targets : "
