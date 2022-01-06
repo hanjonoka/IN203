@@ -16,7 +16,7 @@ Temps pour l'image tiny_lena_grapy.png car le programme est trop lent avec les a
 # Parallélisation OMP
 
 On parallélise la fonction de transformée de Fourier et la fonction de reconstitution car ce sont celles qui prennent le plus de temps.
-On parallélise sur les lignes pour la DTF et sur les colonnes pour la reconstitution.
+On parallélise sur les lignes dans l'espace des fréquences pour la DTF et sur les colonnes de la nouvelle image pour la reconstitution.
 
 Taux par défaut (10%), small_lena_gray.png
 
@@ -28,3 +28,19 @@ Taux par défaut (10%), small_lena_gray.png
 | 4                 | 49.7      | 5.54                 | 3.63        | 3.48           |
 
 Pour la DTF et la reconstitution on remarque que le speedup est proche du nombre de thread ce qui montre que le programme est bien parallélisé.
+
+# Parallélisation MPI 1
+
+On parallélise dans la fonction DTF : chaque process va s'occuper de height/nbp valeurs de n2. Ensuite, on somme les valeurs des DTF partielles avec une reduction.
+On devrait découper l'image avec un MPI_scatter() avant de faire la transformée mais je ne l'ai pas fait par manque de temps.
+
+Taux par défaut (10%), small_lena_gray.png
+
+| Nombre de threads | Temps DTF | Speedup |
+| :---------------: | :-------: | :-----: |
+| 1                 | 95.95     | 1       |
+| 2                 | 51.14     | 1.87    |
+| 3                 | 36.14     | 2.65    |
+| 4                 |
+
+NB : je suis passé branché sur secteur ce qui explique les temps beaucoup plus courts qu'avant.

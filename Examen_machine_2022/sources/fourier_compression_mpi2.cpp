@@ -24,18 +24,17 @@ std::complex<double>* discretTransformFourier( std::uint32_t width, std::uint32_
     std::uint32_t nj = width;
     std::complex<double>* X = new std::complex<double>[ni*nj];
     std::fill(X, X+ni*nj, std::complex<double>(0.,0.));
-    std::cout << rank << " : " << std::endl;;
-    for( std::uint32_t k1 = 0; k1 < ni; ++k1 )
+    for( std::uint32_t k1 = lignes_par_proc*rank; k1 < ni && k1 < lignes_par_proc*(rank+1); ++k1 )
     {
         for (std::uint32_t k2 = 0; k2 < nj; ++k2)
         {
-            for (std::uint32_t n2 = lignes_par_proc*rank; n2 < lignes_par_proc*(rank+1); n2++ )
+            for (std::uint32_t n2 = 0; n2 < ni; ++n2 )
             {
-                std::complex<double> exp2(std::cos(-2*pi*(n2)*k2/height), std::sin(-2*pi*(n2)*k2/height));
+                std::complex<double> exp2(std::cos(-2*pi*n2*k2/height), std::sin(-2*pi*n2*k2/height));
                 for (std::uint32_t n1 = 0; n1 < nj; ++n1 )
                 {
                     std::complex<double> exp1(std::cos(-2*pi*n1*k1/nj), std::sin(-2*pi*n1*k1/nj));
-                    X[k1*nj+k2] += double(pixels[3*(n1+(n2)*nj)])*exp1*exp2;
+                    X[k1*nj+k2] += double(pixels[3*(n1+n2*nj)])*exp1*exp2;
                 }
             }
         }
@@ -194,7 +193,7 @@ int main(int nargs, char* argv[])
     std::chrono::time_point<std::chrono::system_clock> endDTF = std::chrono::system_clock::now();
     std::chrono::duration<double> timeDTF = endDTF - startDTF;
     std::complex<double>* fourier = new std::complex<double>[width*height];
-    MPI_Reduce(fourier_part, fourier, height*width, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, globComm); //somme les transformées partielles
+    MPI_Reduce(fourier_part, fourier, height*width, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, globComm); //on rassemble les morceaux d'image
     if(rank == 0){ //seul le process 0 affiche le chrono.
         std::cout << "Temps DTF : " << timeDTF.count() << std::endl;
     }

@@ -12,7 +12,7 @@ endif
 
 default:	help
 
-all:	fourier_compression.exe fourier_compression_omp.exe
+all:	fourier_compression.exe fourier_compression_omp.exe fourier_compression_mpi1.exe
 
 lodepng/lodepng.cpp:
 	git submodule init
@@ -23,6 +23,9 @@ fourier_compression.exe:	fourier_compression.cpp lodepng/lodepng.cpp
 
 fourier_compression_omp.exe:	fourier_compression_omp.cpp lodepng/lodepng.cpp
 	$(CXX) $(CXXFLAGS) -o fourier_compression_omp.exe fourier_compression_omp.cpp lodepng/lodepng.cpp $(LIB)
+
+fourier_compression_mpi1.exe:	fourier_compression_mpi1.cpp lodepng/lodepng.cpp
+	$(CXX) $(CXXFLAGS) -o fourier_compression_mpi1.exe fourier_compression_mpi1.cpp lodepng/lodepng.cpp $(LIB)
 
 help: 
 	@echo "Available targets : "
