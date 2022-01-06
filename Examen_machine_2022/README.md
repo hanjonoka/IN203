@@ -10,5 +10,5 @@ __Pour ceux en distanciel__ : Pour toute question, envoyer un mail à xjuvigny@g
 Temps pour l'image tiny_lena_grapy.png car le programme est trop lent avec les autres images
 
 | Temps DTF | Temps sélection coefs | Temps reconstitution |
-| :-------: | :-------------------: | | :----------------: |
+| :-------: | :-------------------: | :------------------: |
 | 0.625     | 0.00032               | 0.072                |
