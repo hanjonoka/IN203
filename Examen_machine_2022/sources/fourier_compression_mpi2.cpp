@@ -200,7 +200,9 @@ int main(int nargs, char* argv[])
     
     if(rank == 0){ //pour l'instant on ne parallélise que la DTF
         std::chrono::time_point<std::chrono::system_clock> startCSC = std::chrono::system_clock::now();
-        auto sparse = compressSpectralComposition(width, height, fourier_part, taux);
+        auto sparse = compressSpectralComposition(width, height, fourier, taux);
+
+
         std::chrono::time_point<std::chrono::system_clock> endCSC = std::chrono::system_clock::now();
         std::chrono::duration<double> timeCSC = endCSC - startCSC;
         std::cout << "Temps sélection plus grands coefs : " << timeCSC.count() << std::endl;
@@ -217,6 +219,30 @@ int main(int nargs, char* argv[])
         std::cout << "Fin du programme..." << std::endl << std::flush;
         delete [] compressed_img;
     }
+    
+    // //----- non fonctionnel. Décommenter le bloc au dessus et le reduce pour tester la parallelisation de la DTF
+    // std::chrono::time_point<std::chrono::system_clock> startCSC = std::chrono::system_clock::now();
+    // auto sparse_part = compressSpectralComposition(width, height, fourier, taux);
+    // sparseSpectralComposition sparse;
+    // sparse.
+
+    // std::chrono::time_point<std::chrono::system_clock> endCSC = std::chrono::system_clock::now();
+    // std::chrono::duration<double> timeCSC = endCSC - startCSC;
+    // std::cout << "Temps sélection plus grands coefs : " << timeCSC.count() << std::endl;
+
+    // std::chrono::time_point<std::chrono::system_clock> startRecon = std::chrono::system_clock::now();
+    // unsigned char* compressed_img = inversePartialDiscretTransformFourier(sparse);
+    // std::chrono::time_point<std::chrono::system_clock> endRecon = std::chrono::system_clock::now();
+    // std::chrono::duration<double> timeRecon = endRecon - startRecon;
+    // std::cout << "Temps reconstitution : " << timeRecon.count() << std::endl;
+
+    // auto error = lodepng_encode24_file("compress.png", compressed_img, width, height);
+    // if(error) std::cerr << "decoder error " << error << ": " << lodepng_error_text(error) << std::endl;
+
+    // std::cout << "Fin du programme..." << std::endl << std::flush;
+    // //------
+
+    delete [] compressed_img;
     delete [] fourier_part;
     delete [] fourier;
     delete [] image;

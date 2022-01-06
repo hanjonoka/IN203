@@ -34,6 +34,8 @@ Pour la DTF et la reconstitution on remarque que le speedup est proche du nombre
 On parallélise dans la fonction DTF : chaque process va s'occuper de height/nbp valeurs de n2. Ensuite, on somme les valeurs des DTF partielles avec une reduction.
 On devrait découper l'image avec un MPI_scatter() avant de faire la transformée mais je ne l'ai pas fait par manque de temps.
 
+Les speedup sont moins bons que précédemment mais restent corrects.
+
 Taux par défaut (10%), small_lena_gray.png
 
 | Nombre de threads | Temps DTF | Speedup |
@@ -41,6 +43,11 @@ Taux par défaut (10%), small_lena_gray.png
 | 1                 | 95.95     | 1       |
 | 2                 | 51.14     | 1.87    |
 | 3                 | 36.14     | 2.65    |
-| 4                 |
+| 4                 | 28.22     | 3.4     |
 
 NB : je suis passé branché sur secteur ce qui explique les temps beaucoup plus courts qu'avant.
+
+# Parallélisation MPI 2
+
+Chaque process a besoin d'une copie entière de l'image pour calculer la transformée de fourier.
+Dans un premier temps, on parallélise uniquement la DTF puis on finit l'image sur le process 0.

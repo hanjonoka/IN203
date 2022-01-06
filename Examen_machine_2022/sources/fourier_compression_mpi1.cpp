@@ -24,18 +24,17 @@ std::complex<double>* discretTransformFourier( std::uint32_t width, std::uint32_
     std::uint32_t nj = width;
     std::complex<double>* X = new std::complex<double>[ni*nj];
     std::fill(X, X+ni*nj, std::complex<double>(0.,0.));
-    std::cout << rank << " : " << std::endl;;
     for( std::uint32_t k1 = 0; k1 < ni; ++k1 )
     {
         for (std::uint32_t k2 = 0; k2 < nj; ++k2)
         {
-            for (std::uint32_t n2 = lignes_par_proc*rank; n2 < lignes_par_proc*(rank+1); n2++ )
+            for (std::uint32_t n2 = lignes_par_proc*rank; n2 < lignes_par_proc*(rank+1); n2++)
             {
-                std::complex<double> exp2(std::cos(-2*pi*(n2)*k2/height), std::sin(-2*pi*(n2)*k2/height));
+                std::complex<double> exp2(std::cos(-2*pi*n2*k2/height), std::sin(-2*pi*n2*k2/height));
                 for (std::uint32_t n1 = 0; n1 < nj; ++n1 )
                 {
                     std::complex<double> exp1(std::cos(-2*pi*n1*k1/nj), std::sin(-2*pi*n1*k1/nj));
-                    X[k1*nj+k2] += double(pixels[3*(n1+(n2)*nj)])*exp1*exp2;
+                    X[k1*nj+k2] += double(pixels[3*(n1+n2*nj)])*exp1*exp2;
                 }
             }
         }
@@ -201,7 +200,7 @@ int main(int nargs, char* argv[])
     
     if(rank == 0){ //pour l'instant on ne parallélise que la DTF
         std::chrono::time_point<std::chrono::system_clock> startCSC = std::chrono::system_clock::now();
-        auto sparse = compressSpectralComposition(width, height, fourier_part, taux);
+        auto sparse = compressSpectralComposition(width, height, fourier, taux);
         std::chrono::time_point<std::chrono::system_clock> endCSC = std::chrono::system_clock::now();
         std::chrono::duration<double> timeCSC = endCSC - startCSC;
         std::cout << "Temps sélection plus grands coefs : " << timeCSC.count() << std::endl;
